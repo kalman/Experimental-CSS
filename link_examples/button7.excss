@@ -1,0 +1,57 @@
+/*
+ * Copyright 2011 Google Inc. All Rights Reserved.
+ *
+ * Use of this source code is governed by a BSD-type license.
+ * See the COPYING file for details.
+ */
+
+.neutralButton, .themedButton {
+  cursor: pointer;
+  padding: 2px 5px;
+  margin: 0 2px;
+  -webkit-border-radius: 3px;
+  -moz-border-radius: 3px;
+  font-family: sans-serif;
+  font-size: 10pt;
+}
+
+@trait bgGradient(from, to) {
+  background: -moz-linear-gradient(top, $from, $to);
+  background: -webkit-linear-gradient(top, $from, $to);
+}
+
+@var lightNeutral #f8f8f8;
+@var mediumNeutral #ccc;
+@var darkNeutral #aaa;
+
+@var lightThemed #9d9;
+@var mediumThemed #7a7;
+@var darkThemed #585;
+
+.neutralButton {
+  color: black;
+  border: 1px solid $mediumNeutral;
+  @mixin bgGradient($lightNeutral, $mediumNeutral);
+
+  &:hover {
+    border-color: $lightThemed;
+  };
+
+  &:active, &.toggled {
+    @mixin bgGradient($darkNeutral, $mediumNeutral);
+  };
+}
+
+.themedButton {
+  color: white;
+  border: 1px solid $mediumThemed;
+  @mixin bgGradient($lightThemed, $mediumThemed);
+
+  &:hover {
+    border-color: $mediumThemed;
+  };
+
+  &:active, &.toggled {
+    @mixin bgGradient($darkThemed, $mediumThemed);
+  };
+}

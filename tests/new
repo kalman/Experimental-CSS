@@ -1,0 +1,63 @@
+#!/bin/sh
+# Copyright 2011 Google Inc. All Rights Reserved.
+#
+# Use of this source code is governed by a BSD-type license.
+# See the COPYING file for details.
+
+# Run this to generate a template for a new test.
+#
+# Usage: ./new fooBarBaz
+#
+# Will generate a stub test in style/fooBarBaz.html, and add the line to
+# tests.html to run them.  In the wrong place (at the bottom) because I'm lazy
+# and didn't write it in a real language.
+#
+# Lazy author: Benjamin Kalman <kalman@chromium.org>
+
+NAME="$1"
+if [ -z "$NAME" ]; then
+  echo "Usage: $0 testname"
+  exit 1
+fi
+
+if [ -d style ]; then
+  FILE="style/$NAME.html"
+  TESTS_HTML=tests.html
+elif [ -d tests ]; then
+  FILE="tests/style/$NAME.html"
+  TESTS_HTML=tests/tests.html
+else
+  echo "Cannot find tests directory, you must run the script from excss/ or /tests"
+  exit 1
+fi
+
+if [ -f "$FILE" ]; then
+  echo "Error: $FILE already exists."
+  exit 1
+fi
+
+write() {
+  echo "$@" >> "$FILE"
+}
+
+write "<style type=\"text/excss\">"
+write "  #foo {"
+write "  }"
+write "</style>"
+
+write ""
+write "<div id=\"foo\" expect=\"\">"
+write "</div>"
+write ""
+
+write "<script src=\"../../excss.js\"></script>"
+write "<script src=\"../tests.js\"></script>"
+
+echo "        , \"$NAME\"" >> "$TESTS_HTML"
+
+echo "New test created in"
+echo "$FILE"
+echo ""
+echo "You must now edit"
+echo "$TESTS_HTML"
+echo "and move the test name into the collection of existing tests."

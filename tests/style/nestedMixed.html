@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<!--
+Copyright 2011 Google Inc. All Rights Reserved.
+
+Use of this source code is governed by a BSD-type license.
+See the COPYING file for details.
+-->
+
+<style type="text/excss">
+  #foo {
+    color: red;
+    & #bar {
+      color: blue;
+    }
+    & #bar {
+      background-color: purple;
+    }; /* yes, this is deliberate. */
+    & #baz {
+      background-color: green;
+    }
+    background-color: pink;
+    & #qux {
+      color: grey;
+    }
+    width: 100px;
+    height: 200px
+  }
+</style>
+
+<div id="foo" expect="color: red; background-color: pink; width: 100px; height: 200px">
+  Foo
+  <div id="bar" expect="color: blue; background-color: purple; width: 100px">
+    Foo Bar
+  </div>
+  <div id="baz" expect="color: red; background-color: green; width: 100px">
+    Foo Baz
+  </div>
+  <div id="qux" expect="color: grey; background-color: transparent; width: 100px">
+    Foo Qux
+  </div>
+</div>
+
+<script src="../../excss.js"></script>
+<script src="../tests.js"></script>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<!--
+Copyright 2011 Google Inc. All Rights Reserved.
+
+Use of this source code is governed by a BSD-type license.
+See the COPYING file for details.
+-->
+
+<style type="text/excss">
+  /* Declare baz first to test specificity (Excss must maintain order). */
+  .baz {
+    color: white;
+  }
+  div.baz {
+    width: 200px;
+  }
+  .foo {
+    color: blue;
+    background-color: black;
+  }
+  .bar {
+    color: red;
+    background-color: green;
+  }
+  .foo.bar {
+    background-color: purple;
+  }
+  .foo, .bar {
+    width: 100px;
+  }
+</style>
+
+<script src="../../excss.js"></script>
+<script src="../tests.js"></script>
+
+<div class="foo"         expect="color: blue; background-color: black;  width: 100px">foo</div>
+<div class="bar"         expect="color: red;  background-color: green;  width: 100px">bar</div>
+<div class="foo bar baz" expect="color: red;  background-color: purple; width: 200px">foo bar baz</div>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<!--
+Copyright 2011 Google Inc. All Rights Reserved.
+
+Use of this source code is governed by a BSD-type license.
+See the COPYING file for details.
+-->
+
+<style type="text/excss">
+  div {
+    color: black;
+    background-color: white;
+  }
+  #foo {
+  }
+  #bar {
+  }
+  #baz {
+    color: red;
+    background-color: blue;
+  }
+  #qux {
+  }
+</style>
+
+<div id="foo" expect="color: black; background-color: white">Foo</div>
+<div id="bar" expect="color: black; background-color: white">Bar</div>
+<div id="baz" expect="color: red;   background-color: blue">Baz</div>
+<div id="qux" expect="color: black; background-color: white">Qux</div>
+
+<script src="../../excss.js"></script>
+<script src="../tests.js"></script>

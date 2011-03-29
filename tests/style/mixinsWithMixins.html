@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<!--
+Copyright 2011 Google Inc. All Rights Reserved.
+
+Use of this source code is governed by a BSD-type license.
+See the COPYING file for details.
+-->
+
+<style type="text/excss">
+  .foo {
+    @mixin shape(100px, red);
+  }
+  @trait shape(size, color) {
+    @mixin square($size) colors($color);
+  }
+  @trait square(size) {
+    width: $size;
+    height: $size;
+  }
+  @trait colors(color) {
+    @mixin fg($color) bg($color);
+  }
+  @trait fg(fg) {
+    color: $fg;
+  }
+  @trait bg(bg) {
+    background-color: $bg;
+  }
+</style>
+
+<div class="foo" expect="width: 100px; height: 100px; color: red; background-color: red">
+  Foo
+</div>
+
+<script src="../../excss.js"></script>
+<script src="../tests.js"></script>

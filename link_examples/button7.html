@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<!--
+Copyright 2011 Google Inc. All Rights Reserved.
+
+Use of this source code is governed by a BSD-type license.
+See the COPYING file for details.
+-->
+
+<head>
+  <link rel="stylesheet" href="button7.excss" type="text/excss">
+  <script src="../excss.js"></script>
+</head>
+
+<body>
+  <script src="../common_examples/button.js"></script>
+  <script>
+    function greenTheme() {
+      CSS.setVariable("lightThemed", "#9d9");
+      CSS.setVariable("mediumThemed", "#7a7");
+      CSS.setVariable("darkThemed", "#585");
+    }
+
+    function blueTheme() {
+      CSS.setVariable("lightThemed", "#99d");
+      CSS.setVariable("mediumThemed", "#77a");
+      CSS.setVariable("darkThemed", "#558");
+    }
+
+    function redTheme() {
+      CSS.setVariable("lightThemed", "#d99");
+      CSS.setVariable("mediumThemed", "#a77");
+      CSS.setVariable("darkThemed", "#855");
+    }
+  </script>
+
+  <hr>
+  <div>
+    <button onclick="greenTheme()">Green</button>
+    <button onclick="blueTheme()">Blue</button>
+    <button onclick="redTheme()">Red</button>
+  </div>
+</body>

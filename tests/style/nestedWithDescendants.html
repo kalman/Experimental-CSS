@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<!--
+Copyright 2011 Google Inc. All Rights Reserved.
+
+Use of this source code is governed by a BSD-type license.
+See the COPYING file for details.
+-->
+
+<style type="text/excss">
+  .foo {
+    color: #f00;
+    & .bar {
+      color: #f10;
+      & .baz {
+        color: #f20;
+        & .qux {
+          color: #f30;
+        }
+      }
+    }
+  }
+  .bar {
+    color: #ba0;
+    & .baz {
+      color: #ba1;
+      & .qux {
+        color: #ba2;
+      }
+    }
+  }
+  .baz {
+    color: #ba3;
+    & .qux {
+      color: #ba4;
+    }
+  }
+  .qux {
+    color: #123;
+  }
+</style>
+
+<script src="../../excss.js"></script>
+<script src="../tests.js"></script>
+
+<div class="foo" expect="color: #f00">
+  Foo
+  <div class="bar" expect="color: #f10">
+    Foo Bar
+    <div class="baz" expect="color: #f20">
+      Foo Bar Baz
+      <div class="qux" expect="color: #f30">
+        Foo Bar Baz Qux
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="bar" expect="color: #ba0">
+  Bar
+  <div class="baz" expect="color: #ba1">
+    Bar Baz
+    <div class="qux" expect="color: #ba2">
+      Bar Baz Qux
+    </div>
+  </div>
+</div>
+
+<div class="baz" expect="color: #ba3">
+  Baz
+  <div class="qux" expect="color: #ba4">
+    Baz Qux
+  </div>
+</div>
+
+<div class="qux" expect="color: #123">
+  Qux
+</div>

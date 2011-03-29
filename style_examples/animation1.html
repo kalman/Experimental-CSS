@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<!--
+Copyright 2011 Google Inc. All Rights Reserved.
+
+Use of this source code is governed by a BSD-type license.
+See the COPYING file for details.
+-->
+
+<style type="text/excss">
+  /* Constants to be read from js. */
+  /* This is pretty evil actually. Since when are globals a good idea? */
+  @var leftLimitPx 100;
+  @var rightLimitPx 500;
+  @var freqMs 10;
+  @var jumpByPx 1;
+
+  /* Variable to be used for animation. */
+  @var currentLeftPx 100;
+
+  @trait ball(topPx, leftPx, backgroundColor) {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    top: $topPxpx;
+    left: $leftPxpx;
+    background-color: $backgroundColor;
+    -webkit-border-radius: 50px;
+    -moz-border-radius: 50px;
+  }
+
+  #ball {
+    @mixin ball(100, $currentLeftPx, blue);
+  }
+
+  #otherBall {
+    @mixin ball(250, 100, red);
+  }
+
+  #timer {
+    position: absolute:
+    top: 10px;
+    left: 10px;
+  }
+</style>
+
+<div id="timer">0</div>
+<div id="ball"></div>
+<div id="otherBall"></div>
+
+<script src="../excss.js"></script>
+<script>
+  // Maybe ExCSS should have this built in?
+  CSS.getVariableAsInt = CSS.getVariableAsInt || function(ident) {
+    return parseInt(this.getVariable(ident));
+  };
+
+  function animate(fn) {
+    setInterval(fn, CSS.getVariableAsInt("freqMs"));
+  };
+
+  // Animate ball using ExCSS.
+  animate(function() {
+    var currentLeft = CSS.getVariableAsInt("currentLeftPx") +
+                      CSS.getVariableAsInt("jumpByPx");
+    if (currentLeft > CSS.getVariableAsInt("rightLimitPx")) {
+      currentLeft = CSS.getVariableAsInt("leftLimitPx");
+    }
+    CSS.setVariable("currentLeftPx", currentLeft);
+  });
+
+  // Animate other ball using setAttribute(style).
+  (function() {
+    // Read the initial values from ExCSS, but don't use them during animation.
+    var currentLeftPx = CSS.getVariableAsInt("currentLeftPx");
+    var jumpByPx = CSS.getVariableAsInt("jumpByPx");
+    var leftLimitPx = CSS.getVariableAsInt("leftLimitPx");
+    var rightLimitPx = CSS.getVariableAsInt("rightLimitPx");
+    var otherBall = document.getElementById("otherBall");
+
+    animate(function() {
+      currentLeftPx += jumpByPx;
+      if (currentLeftPx > rightLimitPx) {
+        currentLeftPx = leftLimitPx;
+      }
+      otherBall.setAttribute("style", "left: " + currentLeftPx + "px");
+    });
+  }());
+
+  // Update the timer each second.
+  setInterval(function() {
+    var timer = document.getElementById("timer");
+    timer.innerHTML = parseInt(timer.innerHTML) + 1;
+  }, 1000);
+</script>

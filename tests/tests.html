@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<!--
+Copyright 2011 Google Inc. All Rights Reserved.
+
+Use of this source code is governed by a BSD-type license.
+See the COPYING file for details.
+-->
+
+<!--
+Experimental CSS test runner.
+
+Navigate to this page in a browser, preferably using the test harness.
+Author: Benjamin Kalman <kalman@chromium.org>
+-->
+
+<head>
+  <title>Experimental CSS Tests</title>
+  <style>
+    a {
+      text-decoration: none;
+    }
+
+    .running {
+      color: grey;
+    }
+    .pass, .fail, .error {
+      font-weight: bold;
+    }
+    .pass {
+      color: green;
+    }
+    .fail {
+      color: red;
+    }
+    .error {
+      color: orange;
+    }
+
+    iframe {
+      width: 500px;
+    }
+    iframe.running, iframe.pass {
+      display: none;
+    }
+    iframe.fail, iframe.error {
+      border: 2px solid red;
+    }
+    iframe.error {
+      border-color: orange;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Experimental CSS Tests</h1>
+  <p>
+    This must be opened from a webserver, not locally (i.e. http:// rather than file://) so that
+    XHR works correctly.  A simple webserver written in node.js is bundled with ExCSS for this
+    purpose; see the README.
+  </p>
+  <p>
+    Key: <span class="running">Running</span>,
+         <span class="pass">Passed</span>,
+         <span class="fail">Failed</span>,
+         <span class="error">Couldn't run test</span>.
+  </p>
+  <hr>
+  <table id="results"></table>
+
+  <script>
+    function test(testNames) {
+      var results = document.getElementById("results");
+
+      function addResultRow(link, iframe) {
+        var row = document.createElement("tr");
+        results.appendChild(row);
+        function addCell(contents) {
+          var cell = document.createElement("td");
+          row.appendChild(cell);
+          cell.appendChild(contents);
+        }
+        addCell(link);
+        addCell(iframe);
+      }
+
+      var iframeRecords = [];
+
+      function runNextTest() {
+        if (iframeRecords.length > 0) {
+          var next = iframeRecords.shift();
+          next.iframe.src = next.src;
+          next.iframe.onload = next.onload;
+        }
+      }
+
+      function addFutureTest(iframeRecord) {
+        iframeRecords.push(iframeRecord);
+      }
+
+      testNames.forEach(function(testName) {
+        var link = document.createElement("a");
+        link.innerText = testName;
+        link.href = testName + ".html";
+
+        // Note: don't set the iframe src or onload handler here, so that the
+        // tests can be run sequentially.  Otherwise they all pop in at once.
+        // These iframe records are consumed in runNextTest() above.
+        var iframe = document.createElement("iframe");
+
+        link.className = iframe.className = "running";
+
+        addFutureTest({
+          iframe: iframe,
+          src: (testName + ".html?nc=" + (new Date()).getTime()),
+          onload: function() {
+            try {
+              var failures = iframe.contentWindow.TESTS.failures;
+              link.className = iframe.className = (failures.length === 0) ? "pass" : "fail";
+            } catch (e) {
+              // If this condition is hit, it's probably because the test is
+              // being run from a local file (i.e. file:// protocol) rather than
+              // from a web server.  This makes reading values from an iframe not
+              // work, but it will also cause the XHR based tests to fail anyway.
+              link.className = "error";
+              iframe.className = "error";
+            }
+            runNextTest();
+          }
+        });
+
+        addResultRow(link, iframe);
+      });
+
+      runNextTest();
+    }
+
+    // Add tests here.
+    var tests = [
+          "emptyClasses"
+        , "mixinsMultipleArgs"
+        , "mixinsNoArgs"
+        , "mixinsRedeclaration"
+        , "mixinsSingleArg"
+        , "mixinsWithMixins"
+        , "multipleInclusions"
+        , "multipleTags"
+        , "nestedMixed"
+        , "nestedWithDescendants"
+        , "nestedWithMultiples"
+        // FIXME: rename these to noExCssWith...
+        , "noExcssWithClasses"
+        , "noExcssWithDescendantsAndSiblings"
+        , "noExcssWithIds"
+        , "tooManySemicolons"
+        , "varsDynamic"
+        , "varsRedeclaration"
+        , "varsReferencingOtherVars"
+        , "varsScope"
+        , "varsStatic"
+     ];
+
+     var testHrefs = [];
+     tests.forEach(function(test) {
+       testHrefs.push('style/' + test);
+       testHrefs.push('link/' + test);
+     });
+
+     test(testHrefs);
+  </script>
+</body>

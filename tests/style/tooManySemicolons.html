@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<!--
+Copyright 2011 Google Inc. All Rights Reserved.
+
+Use of this source code is governed by a BSD-type license.
+See the COPYING file for details.
+-->
+
+<style type="text/excss">
+  @var myBlue blue;;;;;;;
+  @var myRed red;;;;;;;;;;;;;;;;;;;;;;;;;;
+  @trait something {
+    width: 100px;;;;;;;;;;;;
+  }
+  #foo {
+    color: $myBlue;;;;;;
+    background-color: $myRed;;;;;;;;;;;;;;;;;;;
+    & > #bar {
+      color: white;;;;;;;
+    };;;;;;;;
+    @mixin something;;;;;;;;;
+    height: 200px;;;;;;;;;
+  }
+</style>
+
+<div id="foo" expect="color: blue; background-color: red; width: 100px; height: 200px">
+  Foo
+  <div id="bar" expect="color: white">
+    Bar
+  </div>
+</div>
+
+<script src="../../excss.js"></script>
+<script src="../tests.js"></script>

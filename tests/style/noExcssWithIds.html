@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<!--
+Copyright 2011 Google Inc. All Rights Reserved.
+
+Use of this source code is governed by a BSD-type license.
+See the COPYING file for details.
+-->
+
+<style type="text/excss">
+  #foo {
+    color: blue;
+    background-color: black;
+  }
+  #bar {
+    color: red;
+    background-color: green;
+  }
+  #foo, #bar {
+    width: 100px;
+  }
+  #foo {
+    width: 200px;
+  }
+</style>
+
+<script src="../../excss.js"></script>
+<script src="../tests.js"></script>
+
+<div id="foo" expect="color: blue; background-color: black; width: 200px">foo</div>
+<div id="bar" expect="color: red;  background-color: green; width: 100px">bar</div>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<!--
+Copyright 2011 Google Inc. All Rights Reserved.
+
+Use of this source code is governed by a BSD-type license.
+See the COPYING file for details.
+-->
+
+<style type="text/excss">
+  @var fg blue;
+  @var bg $fg;
+  @var height $width;
+  @var width $dimension;
+  @var dimension 100px;
+  @var diabolical 666px;
+  @trait thing(fg, bg, width) {
+    color: $fg;
+    background-color: $bg;
+    width: $width;
+  }
+  #foo {
+    @mixin thing($fg, $bg, 200px);
+    height: $height;
+  }
+</style>
+
+<div id="foo" expect="color: blue; background-color: blue; height: 100px; width: 200px">
+  Foo
+</div>
+
+<script src="../../excss.js"></script>
+<script src="../tests.js"></script>
+
+<script>
+  TESTS.addPhase(function() {
+    CSS.setVariable("fg", "red");
+    $("foo").expect("color: red; background-color: red; height: 100px; width: 200px");
+  });
+  TESTS.addPhase(function() {
+    CSS.setVariable("bg", "green");
+    $("foo").expect("color: red; background-color: green; height: 100px; width: 200px");
+  });
+  TESTS.addPhase(function() {
+    CSS.setVariable("fg", "yellow");
+    $("foo").expect("color: yellow; background-color: green; height: 100px; width: 200px");
+  });
+  TESTS.addPhase(function() {
+    CSS.setVariable("fg", "$bg");
+    $("foo").expect("color: green; background-color: green; height: 100px; width: 200px");
+  });
+  TESTS.addPhase(function() {
+    CSS.setVariable("dimension", "$diabolical");
+    $("foo").expect("color: green; background-color: green; height: 666px; width: 200px");
+  });
+</script>

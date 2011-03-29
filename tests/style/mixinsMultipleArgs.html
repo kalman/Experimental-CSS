@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<!--
+Copyright 2011 Google Inc. All Rights Reserved.
+
+Use of this source code is governed by a BSD-type license.
+See the COPYING file for details.
+-->
+
+<style type="text/excss">
+  @trait dim(width, height) {
+    width: $width;
+    height: $height;
+  }
+  @trait borderColors(top, right, bottom, left) {
+    border-top-color: $top;
+    border-right-color: $right;
+    border-bottom-color: $bottom;
+    border-left-color: $left;
+  }
+  .foo {
+    border: 1px solid white;
+    @mixin dim(100px, 200px) borderColors(red, green, blue, black);
+  }
+  .bar {
+    border: 2px dotted white;
+    @mixin borderColors(red, green, blue, black);
+    @mixin dim(50px, 500px);
+  }
+</style>
+
+<script src="../../excss.js"></script>
+<script src="../tests.js"></script>
+
+<div class="foo" expect="width: 100px; height: 200px; border-top-color: red; border-right-color: green; border-bottom-color: blue; border-left-color: black">
+  Foo
+</div>
+<div class="bar" expect="width: 50px; height: 500px; border-top-color: red; border-right-color: green; border-bottom-color: blue; border-left-color: black">
+  Bar
+</div>

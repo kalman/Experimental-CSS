@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<!--
+Copyright 2011 Google Inc. All Rights Reserved.
+
+Use of this source code is governed by a BSD-type license.
+See the COPYING file for details.
+-->
+
+<style type="text/excss">
+  @trait blue {
+    color: blue;
+    background-color: purple;
+  }
+  @trait red {
+    color: red;
+    background-color: orange;
+  }
+  .foo {
+    @mixin blue;
+  }
+  .bar {
+    @mixin red;
+  }
+  .foo .bar {
+    @mixin blue;
+    @mixin red;
+  }
+  .bar .foo {
+    @mixin red blue;
+  }
+</style>
+
+<script src="../../excss.js"></script>
+<script src="../tests.js"></script>
+
+<div class="foo" expect="color: blue; background-color: purple">
+  Foo
+  <div class="bar" expect="color: red; background-color: orange">Foo Bar</div>
+</div>
+<div class="bar" expect="color: red; background-color: orange">
+  Bar
+  <div class="foo" expect="color: blue; background-color: purple">Bar Foo</div>
+</div>

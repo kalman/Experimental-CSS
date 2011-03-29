@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<!--
+Copyright 2011 Google Inc. All Rights Reserved.
+
+Use of this source code is governed by a BSD-type license.
+See the COPYING file for details.
+-->
+
+<style type="text/excss">
+  /* These have deliberately bad names for scope testing. */
+  @var x 10px;
+  @trait square(x) {
+    @mixin rect($x, $x);
+  }
+  @trait rect(x, y) {
+    width: $x;
+    height: $y;
+  }
+  #foo {
+    width: $x;
+    height: 20px;
+  }
+  #bar {
+    @mixin square(30px);
+  }
+  #baz {
+    @mixin rect(40px, 50px);
+  }
+  #qux {
+    @mixin square(60px);
+  }
+  #oof {
+    width: 70px;
+    height: $x;
+  }
+</style>
+
+<div id="foo" expect="width: 10px; height: 20px">Foo</div>
+<div id="bar" expect="width: 30px; height: 30px">Bar</div>
+<div id="baz" expect="width: 40px; height: 50px">Baz</div>
+<div id="qux" expect="width: 60px; height: 60px">Qux</div>
+<div id="oof" expect="width: 70px; height: 10px">Oof</div>
+
+<script src="../../excss.js"></script>
+<script src="../tests.js"></script>
+
+<script>
+  TESTS.addPhase(function() {
+    CSS.setVariable("x", "80px");
+    $("foo").expect("width: 80px; height: 20px");
+    $("oof").expect("width: 70px; height: 80px");
+  });
+</script>

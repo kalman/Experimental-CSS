@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<!--
+Copyright 2011 Google Inc. All Rights Reserved.
+
+Use of this source code is governed by a BSD-type license.
+See the COPYING file for details.
+-->
+
+<style type="text/excss">
+  @trait colors(both) {
+    color: $both;
+    background-color: $both;
+    width: 100px;
+  }
+  @trait colors(fg, bg) {
+    color: $fg;
+    background-color: $bg;
+    width: 200px;
+  }
+  @trait colors(neither) {
+    color: #f00;
+    color: #ba0;
+    width: 300px;
+  }
+  @trait colors(bg, fg) {
+    color: $fg;
+    background-color: $bg;
+    width: 400px;
+  }
+  .foo {
+    @mixin colors(blue, red);
+  }
+</style>
+
+<script src="../../excss.js"></script>
+<script src="../tests.js"></script>
+
+<div class="foo" expect="color: red; background-color: blue; width: 400px">
+  Foo
+</div>

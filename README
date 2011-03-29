@@ -1,0 +1,33 @@
+Experimental CSS (ExCSS)
+
+--------
+is a CSS desugarer written in javascript, included as a <script> or <link> tag,
+which transparently transforms markup of type "text/excss" into "text/css", and
+provides a javascript API for features such as variable changing.
+
+--------
+Tests
+
+ExCSS is bundled with a test suite, doubling as examples for how to use it.
+These are located in tests/style ("style" indicating that ExCSS inclusion via a
+<style> tag is being tested; there are also "link" tests generated automatically
+from the style tests).
+
+--------
+Test harness
+
+The tests are just a simple html page, tests/tests.html.  These can be run via
+a browser (file://...) but due to ExCSS' use of XHR should be accessed via a
+webserver.  A simple webserver written in node.js is bundled; to use it, run
+
+  node server.js [port]
+
+and follow the instructions.
+Before running the tests, ensure that the "link" tests exist by running
+
+  tests/makeLinkTests
+
+--------
+Author
+
+Benjamin Kalman, kalman@chromium.org.

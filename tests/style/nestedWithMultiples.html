@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<!--
+Copyright 2011 Google Inc. All Rights Reserved.
+
+Use of this source code is governed by a BSD-type license.
+See the COPYING file for details.
+-->
+
+<style type="text/excss">
+  .foo {
+    color: red;
+    background-color: orange;
+    &.bar {
+      color: blue;
+    }
+  }
+  .bar {
+    color: green;
+    background-color: pink;
+    &.foo {
+      background-color: purple;
+    }
+  }
+</style>
+
+<script src="../../excss.js"></script>
+<script src="../tests.js"></script>
+
+<div class="foo"     expect="color: red;   background-color: orange">Foo</div>
+<div class="bar"     expect="color: green; background-color: pink">Bar</div>
+<div class="foo bar" expect="color: blue;  background-color: purple">Foo Bar</div>

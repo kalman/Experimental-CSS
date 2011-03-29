@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<!--
+Copyright 2011 Google Inc. All Rights Reserved.
+
+Use of this source code is governed by a BSD-type license.
+See the COPYING file for details.
+-->
+
+<style type="text/excss">
+  @var size 100px;
+  @var borderColor purple;
+  @trait colors(fg, bg) {
+    color: $fg;
+    background-color: $bg;
+    border: 1px solid $borderColor;
+  }
+</style>
+<script src="../../excss.js"></script>
+
+<style type="text/excss">
+  @var borderColor grey;
+  #foo {
+    @mixin colors(red, blue);
+    width: $size;
+    height: 200px;
+  }
+</style>
+<script src="../../excss.js"></script>
+
+<style type="text/excss">
+  #bar {
+    @mixin colors(green, yellow);
+    width: 300px;
+    height: $size;
+  }
+</style>
+<script src="../../excss.js"></script>
+
+<div id="foo" expect="color: red; background-color: blue; width: 100px; height: 200px; border-left-color: grey">
+  Foo
+</div>
+<div id="bar" expect="color: green; background-color: yellow; width: 300px; height: 100px; border-left-color: grey">
+  Bar
+</div>
+
+<script src="../tests.js"></script>
+<script>
+  TESTS.addPhase(function() {
+    CSS.setVariable("size", "400px");
+    $("foo").expect("width: 400px");
+    $("bar").expect("height: 400px");
+  });
+  TESTS.addPhase(function() {
+    CSS.setVariable("borderColor", "orange");
+    $("foo").expect("width: 400px; border-left-color: orange");
+    $("bar").expect("height: 400px; border-left-color: orange");
+  });
+</script>

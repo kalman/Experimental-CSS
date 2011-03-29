@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<!--
+Copyright 2011 Google Inc. All Rights Reserved.
+
+Use of this source code is governed by a BSD-type license.
+See the COPYING file for details.
+-->
+
+<style type="text/excss">
+  @var fg white;
+  @var bg blue;
+  #foo {
+    color: $fg;
+    background-color: $bg;
+  }
+</style>
+
+<script src="../../excss.js"></script>
+<script src="../tests.js"></script>
+
+<div id="foo" expect="color: white; background-color: blue">Foo</div>

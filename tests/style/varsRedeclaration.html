@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<!--
+Copyright 2011 Google Inc. All Rights Reserved.
+
+Use of this source code is governed by a BSD-type license.
+See the COPYING file for details.
+-->
+
+<style type="text/excss">
+  @var fg white;
+  @var fg blue;
+  @var fg red;
+  @var bg grey;
+  @var bg green;
+  @var fg pink;
+  @var fg orange;
+  #foo {
+    color: $fg;
+    background-color: $bg;
+  }
+  @var fg #f00;
+  @var fg #123;
+  @var bg #ba1;
+  @var bg #456;
+</style>
+
+<script src="../../excss.js"></script>
+<script src="../tests.js"></script>
+
+<div id="foo" expect="color: #123; background-color: #456">Foo</div>
+
+<script>
+  TESTS.addPhase(function() {
+    CSS.setVariable("fg", "green");
+    CSS.setVariable("bg", "red");
+    $("foo").expect("color: green; background-color: red");
+  });
+  TESTS.addPhase(function() {
+    CSS.setVariable("fg", "pink");
+    CSS.setVariable("bg", "purple");
+    $("foo").expect("color: pink; background-color: purple");
+  });
+  TESTS.addPhase(function() {
+    CSS.setVariable("bg", "white");
+    $("foo").expect("color: pink; background-color: white");
+  });
+</script>

@@ -74,7 +74,7 @@ function propertiesAreEqual(property, expected, actual) {
 // Gets whether a property is a valid style property, e.g. "color" is valid
 // while "colorp" is, presumably, not.
 function isValidProperty(property) {
-  return property in window.getComputedStyle(document.body);
+  return !!window.getComputedStyle(document.body)[property];
 }
 
 // Gets a string representation of a DOM element nicely for logging.
@@ -144,11 +144,11 @@ window.onload = function() {
   if (failures.length > 0) {
     log.setAttribute('style', 'color: red');
     failures.forEach(function(failure) {
-      log.innerText += 'FAIL: ' + failure + '\n';
+      log.innerHTML += 'FAIL: ' + failure + '\n';
     });
   } else {
     log.setAttribute('style', 'color: green');
-    log.innerText = 'PASS';
+    log.innerHTML = 'PASS';
   }
 };
 

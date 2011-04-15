@@ -935,59 +935,82 @@ Stylesheet.prototype.injectCss = function() {
     warn('CSS will be injected, but style node isn\'t attached to anything');
   }
 
-  var self = this;
+  /**
+   * Gets the selector for a nested rule.
+   */
+  function getNestedSelector(parentSelector, rule) {
+    // TODO(kalman): fix, incorrect for comma selectors.
+    return rule.nested.selector.replace(/&/g, parentSelector);
+  }
 
-  function ppRules(rules, variables) {
-    return rules.reduce(function(currentCss, rule) {
+  /**
+   * Flattens the parse object into:
+   *   - a selector (.selector),
+   *   - a list of resolved declarations (.declarations), and
+   *   - recursively, a list of flattened nested blocks (.nested).
+   * Variables, mixin arguments, and resulting selectors are resolved.
+   */
+  function flatten(selector, rules, variables) {
+    var declarations = [];
+    var nested = [];
+    rules.forEach(function(rule) {
       if (rule.declaration) {
-        currentCss += '  ' + variables.substitute(rule.declaration) + ';\n';
+        declarations.push(variables.substitute(rule.declaration));
+      } else if (rule.nested) {
+        nested.push(flatten(
+            getNestedSelector(selector, rule), rule.nested.rules, variables));
       } else if (rule.mixin) {
-        var trait = TRAITS.get(rule.mixin.ident);
-        if (!trait) {
-          return currentCss;
-        }
-        var args = rule.mixin.args;
-        var params = trait.params;
-        var env = variables.newEnvironment();
-        for (var i = 0; i < args.length && i < params.length; i++) {
-          env.set(params[i], new Variable(params[i], args[i], variables));
-        }
-        currentCss += ppRules(trait.rules, env);
+         var trait = TRAITS.get(rule.mixin.ident);
+         if (!trait) {
+           return;
+         }
+         var args = rule.mixin.args;
+         var params = trait.params;
+         var env = variables.newEnvironment();
+         for (var i = 0; i < args.length && i < params.length; i++) {
+           env.set(params[i], new Variable(params[i], args[i], variables));
+         }
+         var flattenedMixin = flatten(selector, trait.rules, env);
+         declarations = declarations.concat(flattenedMixin.declarations);
+         nested = nested.concat(flattenedMixin.nested);
       }
-      return currentCss;
-    }, '');
-  }
-
-  function getNestedRulesets(rules) {
-    return rules.filter(function(rule) {
-      return !!rule.nested;
-    }).map(function(rule) {
-      return rule.nested;
     });
+    return {
+      selector: selector,
+      declarations: declarations,
+      nested: nested
+    };
   }
 
-  function ppRuleset(selector, rules, variables) {
-    var result = selector + ' {\n' + ppRules(rules, variables) + '}\n';
-    getNestedRulesets(rules).forEach(function(nestedRuleset) {
-      var nestedSelector = nestedRuleset.selector.replace(/&/g, selector);
-      result += ppRuleset(nestedSelector, nestedRuleset.rules, variables);
+  /**
+   * Pretty-prints the flattened model.
+   */
+  function ppFlattened(flattened) {
+    var css = flattened.selector + ' {\n';
+    flattened.declarations.forEach(function(decl) {
+      css += '  ' + decl + ';\n';
     });
-    return result;
+    css += '}\n';
+    flattened.nested.forEach(function(nested) {
+      css += ppFlattened(nested);
+    });
+    return css;
   }
 
-  var cssToInject = '';
+  var css = '';
   this.parseObject.rulesets.forEach(function(ruleset) {
-    cssToInject += ppRuleset(ruleset.selector, ruleset.rules, VARIABLES);
+    css += ppFlattened(flatten(ruleset.selector, ruleset.rules, VARIABLES));
   });
 
-  if (cssToInject.trim() === '') {
+  if (css.trim() === '') {
     warn('CSS injection is empty.  This might be because the original ExCSS ' +
          'markup was empty, or because the original ExCSS markup has syntax ' +
-         'errors, or because ExCSS has a bug.');
+         'errors, or because ExCSS has a bug.  If the latter, please file at ' +
+         'http://code.google.com/p/experimental-css');
   }
 
   this.styleElement.type = 'text/css';
-  this.styleElement.innerHTML = cssToInject;
+  this.styleElement.innerHTML = css;
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -1053,6 +1076,9 @@ function runExCssFromBrowser() {
       } else {
         warn('type="text/excss" set on invalid node type "' + tagName + '"');
         return;
+      }
+      if (isDebug) {
+        log(JSON.stringify(stylesheet.getParseObject(), null, 2));
       }
       STYLESHEETS.push(stylesheet);
       TRAITS.importFromStylesheet(stylesheet);

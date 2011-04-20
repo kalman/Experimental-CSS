@@ -1,0 +1,69 @@
+<style type="text/excss">
+  .baz, .qux, .one, .two, .thr {
+    color: pink;
+    font-size: 8px;
+  }
+  .foo, .bar {
+    color: blue;
+    & .one, .two, .thr {
+      color: purple;
+    }
+    & .baz, .qux {
+      color: red;
+      & .one, .two, .thr {
+        color: orange;
+      }
+    }
+    &.baz {
+      font-size: 18px;
+    }
+  }
+</style>
+
+<div class="foo" expect="color: blue">
+  Foo
+  <div class="baz" expect="color: red; font-size: 8px">
+    Foo Baz
+    <div class="one" expect="color: orange; font-size: 8px">Foo Baz One</div>
+    <div class="two" expect="color: orange; font-size: 8px">Foo Baz Two</div>
+    <div class="thr" expect="color: orange; font-size: 8px">Foo Baz Thr</div>
+  </div>
+  <div class="qux" expect="color: red; font-size: 8px">
+    Foo Qux
+    <div class="one" expect="color: orange; font-size: 8px">Foo Qux One</div>
+    <div class="two" expect="color: orange; font-size: 8px">Foo Qux Two</div>
+    <div class="thr" expect="color: orange; font-size: 8px">Foo Qux Thr</div>
+  </div>
+  <div class="one" expect="color: purple; font-size: 8px">Foo One</div>
+  <div class="two" expect="color: purple; font-size: 8px">Foo Two</div>
+  <div class="thr" expect="color: purple; font-size: 8px">Foo Thr</div>
+</div>
+<div class="bar" expect="color: blue">
+  Bar
+  <div class="baz" expect="color: red; font-size: 8px">
+    Bar Baz
+    <div class="one" expect="color: orange; font-size: 8px">Bar Baz One</div>
+    <div class="two" expect="color: orange; font-size: 8px">Bar Baz Two</div>
+    <div class="thr" expect="color: orange; font-size: 8px">Bar Baz Thr</div>
+  </div>
+  <div class="qux" expect="color: red; font-size: 8px">
+    Bar Qux
+    <div class="one" expect="color: orange; font-size: 8px">Bar Qux One</div>
+    <div class="two" expect="color: orange; font-size: 8px">Bar Qux Two</div>
+    <div class="thr" expect="color: orange; font-size: 8px">Bar Qux Thr</div>
+  </div>
+  <div class="one" expect="color: purple; font-size: 8px">Bar One</div>
+  <div class="two" expect="color: purple; font-size: 8px">Bar Two</div>
+  <div class="thr" expect="color: purple; font-size: 8px">Bar Thr</div>
+</div>
+
+<div class="baz" expect="color: pink; font-size: 8px">Baz</div>
+<div class="qux" expect="color: pink; font-size: 8px">Qux</div>
+<div class="one" expect="color: pink; font-size: 8px">One</div>
+<div class="two" expect="color: pink; font-size: 8px">Two</div>
+<div class="thr" expect="color: pink; font-size: 8px">Thr</div>
+<div class="foo baz" expect="color: blue; font-size: 18px">FooBaz</div>
+<div class="bar baz" expect="color: blue; font-size: 18px">BarBaz</div>
+
+<script src="../../excss.js"></script>
+<script src="../tests.js"></script>

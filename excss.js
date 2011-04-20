@@ -939,8 +939,19 @@ Stylesheet.prototype.injectCss = function() {
    * Gets the selector for a nested rule.
    */
   function getNestedSelector(parentSelector, rule) {
-    // TODO(kalman): fix, incorrect for comma selectors.
-    return rule.nested.selector.replace(/&/g, parentSelector);
+    // See http://code.google.com/p/experimental-css/issues/detail?id=3 for
+    // discussion on what the correct behaviour should be with commas.
+    // It would be nice to precompile this, for efficiency.
+    return parentSelector.split(',').map(function(outer) {
+      outer = outer.trim();
+      return rule.nested.selector.split(',').map(function(inner) {
+        inner = inner.trim();
+        if (inner.indexOf('&') !== 0) {
+          inner = '& ' + inner;
+        }
+        return inner.replace(/&/g, outer);
+      }).join(', ');
+    }).join(', ');
   }
 
   /**

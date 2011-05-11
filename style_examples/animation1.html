@@ -6,6 +6,7 @@ Use of this source code is governed by a BSD-type license.
 See the COPYING file for details.
 -->
 
+<head>
 <style type="text/excss">
   /* Constants to be read from js. */
   /* This is pretty evil actually. Since when are globals a good idea? */
@@ -42,7 +43,9 @@ See the COPYING file for details.
     left: 10px;
   }
 </style>
+</head>
 
+<body>
 <div id="timer">0</div>
 <div id="ball"></div>
 <div id="otherBall"></div>
@@ -92,3 +95,4 @@ See the COPYING file for details.
     timer.innerHTML = parseInt(timer.innerHTML) + 1;
   }, 1000);
 </script>
+</body>

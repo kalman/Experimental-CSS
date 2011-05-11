@@ -681,6 +681,88 @@ function parse(contents) {
   return jso;
 }
 
+// Pretty-prints a parse object as CSS.
+function prettyPrint(parseObject) {
+  // Gets the selector for a nested rule.
+  function getNestedSelector(parentSelector, rule) {
+    // See http://code.google.com/p/experimental-css/issues/detail?id=3 for
+    // discussion on what the correct behaviour should be with commas.
+    // It would be nice to precompile this, for efficiency.
+    return parentSelector.split(',').map(function(outer) {
+      outer = outer.trim();
+      return rule.nested.selector.split(',').map(function(inner) {
+        inner = inner.trim();
+        if (inner.indexOf('&') !== 0) {
+          inner = '& ' + inner;
+        }
+        return inner.replace(/&/g, outer);
+      }).join(', ');
+    }).join(', ');
+  }
+
+  // Flattens the parse object into:
+  //   - a selector (.selector),
+  //   - a list of resolved declarations (.declarations), and
+  //   - recursively, a list of flattened nested blocks (.nested).
+  // Variables, mixin arguments, and resulting selectors are resolved.
+  function flatten(selector, rules, variables) {
+    var declarations = [];
+    var nested = [];
+    rules.forEach(function(rule) {
+      if (rule.declaration) {
+        declarations.push(variables.substitute(rule.declaration));
+      } else if (rule.nested) {
+        nested.push(flatten(
+            getNestedSelector(selector, rule), rule.nested.rules, variables));
+      } else if (rule.mixin) {
+         var trait = TRAITS.get(rule.mixin.ident);
+         if (!trait) {
+           return;
+         }
+         var args = rule.mixin.args;
+         var params = trait.params;
+         var env = variables.newEnvironment();
+         for (var i = 0; i < args.length && i < params.length; i++) {
+           env.set(params[i], new Variable(params[i], args[i], variables));
+         }
+         var flattenedMixin = flatten(selector, trait.rules, env);
+         declarations = declarations.concat(flattenedMixin.declarations);
+         nested = nested.concat(flattenedMixin.nested);
+      }
+    });
+    return {
+      selector: selector,
+      declarations: declarations,
+      nested: nested
+    };
+  }
+
+  // Pretty-prints the flattened model.
+  function ppFlattened(flattened) {
+    var css = flattened.selector + ' {\n';
+    flattened.declarations.forEach(function(decl) {
+      css += '  ' + decl + ';\n';
+    });
+    css += '}\n';
+    flattened.nested.forEach(function(nested) {
+      css += ppFlattened(nested);
+    });
+    return css;
+  }
+
+  var css = '';
+  parseObject.rulesets.forEach(function(ruleset) {
+    css += ppFlattened(flatten(ruleset.selector, ruleset.rules, VARIABLES));
+  });
+  return css;
+}
+
+// Imports a parse object into the global TRAITS and VARIABLES namespace.
+function importParseObject(parseObject) {
+  TRAITS.importFromParseObject(parseObject);
+  VARIABLES.importFromParseObject(parseObject);
+}
+
 ////////////////////////////////////////////////////////////////////////
 // IN-BROWSER EXCSS
 ////////////////////////////////////////////////////////////////////////
@@ -697,9 +779,9 @@ Traits.prototype.get = function(ident) {
 
 // Imports all trait definitions from a stylesheet.  Any existing traits with
 // the same identifier will be overridden.
-Traits.prototype.importFromStylesheet = function(stylesheet) {
+Traits.prototype.importFromParseObject = function(parseObject) {
   var self = this;
-  var stylesheetTraits = stylesheet.getParseObject().traits;
+  var stylesheetTraits = parseObject.traits;
   Object.keys(stylesheetTraits).forEach(function(ident) {
     self.traits[ident] = stylesheetTraits[ident];
   });
@@ -780,14 +862,14 @@ Variables.prototype.newEnvironment = function() {
 };
 
 // Imports a collection of variables from a Stylesheet.
-Variables.prototype.importFromStylesheet = function(stylesheet) {
+Variables.prototype.importFromParseObject = function(parseObject) {
   var self = this;
 
   // Naively import without worrying about references to other variables, e.g.
   //   @var foo 10px;
   //   @var bar $foo;
   //   @var baz $bar;
-  var stylesheetVariables = stylesheet.getParseObject().variables;
+  var stylesheetVariables = parseObject.variables;
   Object.keys(stylesheetVariables).forEach(function(ident) {
     self.variables[ident] = new Variable(ident, stylesheetVariables[ident]);
   });
@@ -935,83 +1017,7 @@ Stylesheet.prototype.injectCss = function() {
     warn('CSS will be injected, but style node isn\'t attached to anything');
   }
 
-  /**
-   * Gets the selector for a nested rule.
-   */
-  function getNestedSelector(parentSelector, rule) {
-    // See http://code.google.com/p/experimental-css/issues/detail?id=3 for
-    // discussion on what the correct behaviour should be with commas.
-    // It would be nice to precompile this, for efficiency.
-    return parentSelector.split(',').map(function(outer) {
-      outer = outer.trim();
-      return rule.nested.selector.split(',').map(function(inner) {
-        inner = inner.trim();
-        if (inner.indexOf('&') !== 0) {
-          inner = '& ' + inner;
-        }
-        return inner.replace(/&/g, outer);
-      }).join(', ');
-    }).join(', ');
-  }
-
-  /**
-   * Flattens the parse object into:
-   *   - a selector (.selector),
-   *   - a list of resolved declarations (.declarations), and
-   *   - recursively, a list of flattened nested blocks (.nested).
-   * Variables, mixin arguments, and resulting selectors are resolved.
-   */
-  function flatten(selector, rules, variables) {
-    var declarations = [];
-    var nested = [];
-    rules.forEach(function(rule) {
-      if (rule.declaration) {
-        declarations.push(variables.substitute(rule.declaration));
-      } else if (rule.nested) {
-        nested.push(flatten(
-            getNestedSelector(selector, rule), rule.nested.rules, variables));
-      } else if (rule.mixin) {
-         var trait = TRAITS.get(rule.mixin.ident);
-         if (!trait) {
-           return;
-         }
-         var args = rule.mixin.args;
-         var params = trait.params;
-         var env = variables.newEnvironment();
-         for (var i = 0; i < args.length && i < params.length; i++) {
-           env.set(params[i], new Variable(params[i], args[i], variables));
-         }
-         var flattenedMixin = flatten(selector, trait.rules, env);
-         declarations = declarations.concat(flattenedMixin.declarations);
-         nested = nested.concat(flattenedMixin.nested);
-      }
-    });
-    return {
-      selector: selector,
-      declarations: declarations,
-      nested: nested
-    };
-  }
-
-  /**
-   * Pretty-prints the flattened model.
-   */
-  function ppFlattened(flattened) {
-    var css = flattened.selector + ' {\n';
-    flattened.declarations.forEach(function(decl) {
-      css += '  ' + decl + ';\n';
-    });
-    css += '}\n';
-    flattened.nested.forEach(function(nested) {
-      css += ppFlattened(nested);
-    });
-    return css;
-  }
-
-  var css = '';
-  this.parseObject.rulesets.forEach(function(ruleset) {
-    css += ppFlattened(flatten(ruleset.selector, ruleset.rules, VARIABLES));
-  });
+  var css = prettyPrint(this.parseObject);
 
   if (css.trim() === '') {
     warn('CSS injection is empty.  This might be because the original ExCSS ' +
@@ -1052,10 +1058,14 @@ function setVariable(ident, value) {
 
 if (!window.CSS) {
   window.CSS = {
-    parse: parse,
-    extractMarkupAndParseObject: extractMarkupAndParseObject,
+    // Actual dynamic API.
     getVariable: getVariable,
     setVariable: setVariable,
+    // Functionality exported for non-browser tools (and debugging).
+    parse: parse,
+    extractMarkupAndParseObject: extractMarkupAndParseObject,
+    prettyPrint: prettyPrint,
+    importParseObject: importParseObject,
     // The "locals" are values needed across multiple browser inclusions of
     // ExCSS -- which maybe there are.  In convoluted-land.  Try to hide them.
     __locals__: {
@@ -1092,8 +1102,7 @@ function runExCssFromBrowser() {
         log(JSON.stringify(stylesheet.getParseObject(), null, 2));
       }
       STYLESHEETS.push(stylesheet);
-      TRAITS.importFromStylesheet(stylesheet);
-      VARIABLES.importFromStylesheet(stylesheet);
+      importParseObject(stylesheet.getParseObject());
     });
   });
 

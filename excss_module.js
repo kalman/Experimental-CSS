@@ -16,31 +16,47 @@
 var savedGlobalWindow = global.window;
 global.window = {};
 require('./excss.js');
-var exCss = global.window.CSS;
+var CSS = global.window.CSS;
+global.window = savedGlobalWindow;
 
-// Precompiles some ExCSS markup, to return the original data with the compiled
-// JSON attached as a comment.
-exports.precompile = function(data, insertAtEnd) {
-  if (!(data instanceof String)) {
-    data = new String(data);
+// Parses some ExCSS markup, then imports the variables and traits from a
+// stylesheet into the CSS object.
+// Returns an object with the existing markup and parse object.
+exports.importMarkup = function(markup) {
+  // Node doesn't give us Strings.
+  if (!(markup instanceof String)) {
+    markup = new String(markup);
   }
-  var markup = exCss.extractMarkupAndParseObject(data).markup.trim();
-  var parseObject = undefined;
+  var result = CSS.extractMarkupAndParseObject(markup);
+  // Ignore the existing parse object, since it might be out of date.
+  result.parseObject = undefined;
   try {
-    parseObject = exCss.parse(markup);
+    result.parseObject = CSS.parse(result.markup);
   } catch (e) {
     console.warn('Exception thrown while parsing ExCSS: ' + e);
   }
-  if (!parseObject) {
-    console.warn('Could not parse ExCSS markup ' + data);
-    return data;
+  if (!result.parseObject) {
+    console.warn('Could not parse ExCSS markup ' + markup);
+    return undefined;
   }
-  var json = JSON.stringify(parseObject);
-  if (insertAtEnd) {
-    return markup + '\n\n/*{{{' + json + '}}}*/\n';
-  } else {
+  // Import variables and traits.
+  CSS.importParseObject(result.parseObject);
+  return result;
+}
+
+// Creates new ExCSS markup derived from the object returned from import(),
+// with the original markup plus the parse object attached as JSON in a comment.
+exports.preCompile = function(markupAndParseObject, insertAtStart) {
+  var markup = markupAndParseObject.markup.trim();
+  var json = JSON.stringify(markupAndParseObject.parseObject);
+  if (insertAtStart) {
     return '/*{{{' + json + '}}}*/\n\n' + markup;
+  } else {
+    return markup + '\n\n/*{{{' + json + '}}}*/\n';
   }
 };
 
-global.window = savedGlobalWindow;
+// Compiles the object returned from import() into static CSS.
+exports.staticallyCompile = function(markupAndParseObject) {
+  return CSS.prettyPrint(markupAndParseObject.parseObject);
+};

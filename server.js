@@ -14,9 +14,10 @@
  * Author: Benjamin Kalman <kalman@chromium.org>
  */
 
+var exCss = require('./excss_module.js');
 var http = require('http');
 var fs = require('fs');
-var exCss = require('./excss_module.js');
+var opts = require('./opts.js');
 
 function getRealFilename(filename) {
   // Disallow absolute paths.
@@ -74,7 +75,9 @@ FileCache.prototype.get = function(filename, callback) {
     }
     if (getFileExtension(filename) === 'excss') {
       console.log('Prepending ExCSS object for ' + filename);
-      data = exCss.precompile(data);
+      // FIXME(ben): need a way to purge this so that old data doesn't sit
+      // around if/when we start statically compiling these too.
+      data = exCss.preCompile(exCss.importMarkup(data), true);
     }
     cacheEntry.data = data;
     self.cache[filename] = cacheEntry;
@@ -106,8 +109,12 @@ FileCache.prototype.get = function(filename, callback) {
   fs.stat(filename, statCallback);
 };
 
-var host = 'localhost';
-var port = (process.argv.length > 2) ? process.argv[2] : 8000;
+var args = opts.parse({
+  p: { aka: 'port', needsArg: true },
+  h: { aka: 'host', needsArg: true }
+});
+var host = args.host ? args.host : 'localhost';
+var port = args.port ? args.port : 8000;
 var cache = new FileCache();
 
 http.createServer(function(request, response) {

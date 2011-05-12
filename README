@@ -1,9 +1,49 @@
 Experimental CSS (ExCSS)
 
---------
 is a CSS desugarer written in javascript, included as a <script> or <link> tag,
 which transparently transforms markup of type "text/excss" into "text/css", and
 provides a javascript API for features such as variable changing.
+
+--------
+HTML
+
+Write ExCSS markup in either a
+
+  <style type="text/excss">...</style>
+
+or in a separate stylesheet included as
+
+  <link type="text/excss" href="...">
+
+Then just include excss.js.  ExCSS markup is compiled down to CSS as the page
+loads.
+
+--------
+Pre-parsing
+
+Parsing ExCSS markup is slow, but it can be pre-parsed via the ExCSS compiler.
+The dynamic CSS API is maintained, and but initial page load is much faster.
+
+  node compiler.js stylesheet.excss
+
+modifies stylesheet.excss to insert the parsed markup as JSON in a comment.
+
+--------
+Static compilation
+
+ExCSS markup can be statically compiled to CSS, though the dynamic CSS API will
+be lost and variables/traits evaluated up-front.
+
+  node compiler.js -s stylesheet.excss
+
+produces stylesheet.css.  Note that if multiple excss files are given, the
+compiler will evaluate variables and mixins as though they were on the same
+page (i.e. within the same environment).  This means that running
+
+  node compiler.js -s stylesheet.excss variables.excss
+
+will make any variables/traits defined in variables.excss available to
+stylesheet.excss.
 
 --------
 Tests

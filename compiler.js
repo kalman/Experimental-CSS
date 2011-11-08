@@ -24,6 +24,10 @@ function ExCssFile(name) {
   this.data = exCss.importMarkup(fileContents);
 }
 
+ExCssFile.create = function(name) {
+  return new ExCssFile(name);
+};
+
 // Pre-compiles the file in place.
 ExCssFile.prototype.preCompile = function() {
   fs.writeFileSync(this.name, exCss.preCompile(this.data, false));
@@ -38,29 +42,31 @@ ExCssFile.prototype.staticallyCompile = function() {
 }
 
 var args = opts.parse({
-  s: { aka: 'static' }
+  s: { aka: 'static' },
+  i: { aka: 'inline' }
 });
 
-if (args._.length === 0) {
+if (!args.static && !args.inline) {
   console.log([
     'Usage: node ' + process.argv[1] + ' [opts] filename.excss...',
     'Options:',
     '  -s --static  Statically compile a CSS file alongside each ExCSS file.',
     '               Of course, using the CSS file rather than ExCSS will mean ',
     '               that dynamic variables won\'t work in-browser.',
+    '  -i --inline  Precompile each ExCSS file to its "parse object" and ',
+    '               inline the result at the end of the file, for much faster ',
+    '               running of ExCSS while maintaining dynamic variables.',
   ].join('\n'));
   process.exit(1);
 }
 
 // Create all the files (map) then process them (forEach) so that the global
 // variables and traits will be resolved.
-args._.map(function(filename) {
-  console.log('Creating ExCssFile for: ' + filename);
-  return new ExCssFile(filename);
-}).forEach(function(file) {
+args._.map(ExCssFile.create).forEach(function(file) {
   if (args.static) {
     file.staticallyCompile();
-  } else {
+  }
+  if (args.inline) {
     file.preCompile();
   }
 });

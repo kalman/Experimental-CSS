@@ -77,6 +77,7 @@ function neverLog(s) {
 
 function log(s) {
   log = isDebug ? alwaysLog : neverLog;
+  log(s);
 }
 
 function warn(s) {

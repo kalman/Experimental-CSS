@@ -1,0 +1,14 @@
+<style type="text/excss">
+  @var $foo red;
+  div {
+    color: black;
+  }
+  #foo {
+    color: $foo;
+  }
+</style>
+
+<div id="foo" expect="color: red"></div>
+
+<script src="../../excss.js"></script>
+<script src="../tests.js"></script>

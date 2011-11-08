@@ -128,11 +128,14 @@ Object.keys = Object.keys || function(object) {
 // Wraps a string for efficiency.
 function StringWrapper(string, index) {
   assert(typeof(string) === 'string', 'Initialiser must be a string');
-  assert(typeof(index) === 'undefined' || typeof(index) === 'number',
-         'Index must be a number');
+  assert(typeof(index) === 'number', 'Index must be a number');
   this.string = string;
-  this.index = index ? index : 0;
+  this.index = index;
 }
+
+StringWrapper.wrap = function(s) {
+  return new StringWrapper(s, 0);
+};
 
 StringWrapper.prototype.advance = function(by) {
   return new StringWrapper(this.string, this.index + by);
@@ -333,6 +336,7 @@ function t(key) {
   return lookup(table, key);
 }
 
+var S = t('S');
 var SS = t('SS');
 
 function g(key) {
@@ -402,6 +406,7 @@ TABLES.Tokens = ruleify({
   UNICODE_RANGE: nothing(),
   CDO: '<!--',
   CDC: '-->',
+  // Use the S constant for this.
   S: /[ \t\r\n\f]+/,
   // NOTE: SS is not a core token, but it's a convenient replacement for S*
   // which appears everywhere.  Just use the SS constant for this.
@@ -422,7 +427,7 @@ TABLES.ExCssTokens = ruleify({
 //
 // stylesheet       : [ S | statement ]*;
 // statement        : var-decl | trait | ruleset;
-// var-decl         : '@var' S* var-ident S* var-init ';'+;
+// var-decl         : '@var' S* '$'? var-ident S* var-init ';'+;
 // var-ident        : IDENT;
 // var-init         : values;
 // trait            : '@trait' S* trait-ident S* [ trait-params S* ]? rulebody
@@ -471,10 +476,13 @@ TABLES.ExCssTokens = ruleify({
 TABLES.Grammar = typeify(ruleify({
   stylesheet: zeroOrMore(first(t('S'), g('statement'))),
   statement: first(g('var_decl'), g('trait'), g('ruleset'), g('keyframes')),
-  var_decl: ['@var', SS, g('var_ident'), SS, g('var_init'), oneOrMore(';')],
+  var_decl: ['@var', S,
+             zeroOrOne('$'), g('var_ident'), S,
+             g('var_init'),
+             oneOrMore(';')],
   var_ident: t('IDENT'),
   var_init: g('values'),
-  trait: ['@trait', SS,
+  trait: ['@trait', S,
           g('trait_ident'), SS,
           zeroOrOne(g('trait_params'), SS),
           g('rulebody')],
@@ -494,14 +502,14 @@ TABLES.Grammar = typeify(ruleify({
   nested_selector: [g('nested_decl'), g('selector')],
   nested_decl: '&',
   selector: zeroOrMore(t('NOTBRACE')),
-  mixin: ['@mixin', SS, oneOrMore(g('mixin_value'), SS)],
+  mixin: ['@mixin', S, oneOrMore(g('mixin_value'), SS)],
   mixin_value: [g('mixin_ident'), SS, zeroOrOne(g('mixin_args'))],
   mixin_ident: t('IDENT'),
   mixin_args: first(
     ['(', SS, ')'],
     ['(', SS, g('mixin_arg'), zeroOrMore(',', SS, g('mixin_arg')), ')']),
   mixin_arg: g('value'),
-  keyframes: ['@keyframes', SS,
+  keyframes: ['@keyframes', S,
               g('keyframes_ident'), SS,
               '{', SS,
               g('keyframes_blocks'),
@@ -666,7 +674,7 @@ function parse(contents) {
   }
 
   var stylesheet =
-      TABLES.Grammar.stylesheet(new StringWrapper(stripComments(contents)));
+      TABLES.Grammar.stylesheet(StringWrapper.wrap(stripComments(contents)));
   if (!stylesheet) {
     error('Unable to parse stylesheet: ' + contents);
     return;

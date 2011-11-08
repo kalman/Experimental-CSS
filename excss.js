@@ -883,6 +883,15 @@ function prettyPrint(parseObject) {
 function importParseObject(parseObject) {
   TRAITS.importFromParseObject(parseObject);
   VARIABLES.importFromParseObject(parseObject);
+
+  Object.keys(VARIABLES.getAllVariables()).forEach(function(ident) {
+    window.CSS.vars.__defineGetter__(ident, function() {
+      return getVariable(ident);
+    });
+    window.CSS.vars.__defineSetter__(ident, function(newValue) {
+      return setVariable(ident, newValue);
+    });
+  });
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -920,6 +929,11 @@ function Variable(ident, value, variables) {
   // invocations if ExCSS is included multiple times.
   this.isVariable = true;
 }
+
+// Gets the identifier of the variable.
+Variable.prototype.getIdent = function() {
+  return this.ident;
+};
 
 // Gets the name of the variable.  This is a simple function of the ident; a
 // variable with ident "foo" has name "$foo", etc.
@@ -1184,6 +1198,8 @@ if (!window.CSS) {
     // Actual dynamic API.
     getVariable: getVariable,
     setVariable: setVariable,
+    // Has getters and setters that call through to getVariable/setVariable.
+    vars: {},
     // Functionality exported for non-browser tools (and debugging).
     parse: parse,
     extractMarkupAndParseObject: extractMarkupAndParseObject,

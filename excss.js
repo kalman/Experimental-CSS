@@ -41,6 +41,7 @@ var console = window.console;
 
 var isDebug = false;
 var isInstrumented = false;
+var isExplicit = false;
 
 if (document) {
   var allScripts = document.getElementsByTagName('script');
@@ -50,6 +51,15 @@ if (document) {
   }
   if (thisScript.getAttribute('instrumented') === 'true') {
     isInstrumented = true;
+  }
+  if (thisScript.getAttribute('explicit') === 'true') {
+    isExplicit = true;
+  }
+}
+
+function assert(predicate, message) {
+  if (!predicate) {
+    throw new Error(message);
   }
 }
 
@@ -114,11 +124,33 @@ Object.keys = Object.keys || function(object) {
   return keys;
 };
 
+// Wraps a string for efficiency.
+function StringWrapper(string, index) {
+  assert(typeof(string) === 'string', 'Initialiser must be a string');
+  assert(typeof(index) === 'undefined' || typeof(index) === 'number',
+         'Index must be a number');
+  this.string = string;
+  this.index = index ? index : 0;
+}
+
+StringWrapper.prototype.advance = function(by) {
+  return new StringWrapper(this.string, this.index + by);
+};
+
+StringWrapper.prototype.toString = function() {
+  return this.string.slice(this.index);
+};
+
+StringWrapper.prototype.startsWith = function(s) {
+  return this.string.slice(this.index, this.index + s.length) === s;
+};
+
 ////////////////////////////////////////////////////////////////////////
 // CSS PARSER
 ////////////////////////////////////////////////////////////////////////
 
 function Token(value, remainder, type) {
+  assert(remainder instanceof StringWrapper, 'remainder must be a StringWrapper');
   this.value = value;
   this.remainder = remainder;
   this.type = type;
@@ -141,18 +173,18 @@ function Token(value, remainder, type) {
 function rule(something) {
   if (typeof(something) === 'string') {
     return function(s) {
-      return s.indexOf(something.toLowerCase()) === 0 ?
-          new Token(something, s.slice(something.length)) : undefined;
+      return s.startsWith(something.toLowerCase()) ?
+          new Token(something, s.advance(something.length)) : undefined;
     };
   } else if (something instanceof RegExp) {
     return function(s) {
       var asString = something.toString().match(/^\/([^\/]*)\/[^\/]*$/)[1];
-      var match = s.match(new RegExp('^(' + asString + ')', 'i'));
+      var match = s.toString().match(new RegExp('^(' + asString + ')', 'i'));
       if (!match) {
         return undefined;
       }
       var matchString = match[0];
-      return new Token(matchString, s.slice(matchString.length));
+      return new Token(matchString, s.advance(matchString.length));
     };
   } else if (something instanceof Array) {
     return all.apply(undefined, something);
@@ -284,13 +316,9 @@ var TABLES = {};
 function lookup(tableName, key) {
   return function(string) {
     var table = TABLES[tableName];
-    if (!table) {
-      throw new Error('Can\'t find table ' + tableName);
-    }
+    assert(table, 'Can\'t find table ' + tableName);
     var value = table[key] ? table[key] : table[key + '_'];
-    if (!value) {
-      throw new Error('Can\'t find token for key ' + key + ' in ' + tableName);
-    }
+    assert(value, 'Can\'t find token for key ' + key + ' in ' + tableName);
     return value(string);
   };
 }
@@ -336,8 +364,9 @@ TABLES.Macros = ruleify({
   unicode: [/\\[0-9a-f]{1,6}(\r\n|[ \n\r\t\f])?/],
   escape_: first(m('unicode'), ['\\', /"[^\n\r\f0-9a-f]"/]),
   nmchar: first(/[_a-z0-9\-]/, m('nonascii'), m('escape')),
-  // NOTE: num is modified from /[0-9]+|[0-9]*\.[0-9]+/
-  num: [/[0-9]*\.[0-9]+|[0-9]+/],
+  // NOTE: in the CSS3 grammar, num is /[0-9]+|[0-9]*\.[0-9]+/.
+  // Modified here to allow for negative numbers, and for parser correctness.
+  num: [/[-]?([0-9]*\.[0-9]+|[0-9]+)/],
   string: first(m('string1'), m('string2')),
   string1:
     ['"', zeroOrMore(first(/[^\n\r\f"]/, ['\\', m('nl')], m('escape'))), '"'],
@@ -397,7 +426,8 @@ TABLES.ExCssTokens = ruleify({
 // var-init         : values;
 // trait            : '@trait' S* trait-ident S* [ trait-params S* ]? rulebody
 // trait-ident      : IDENT;
-// trait-params     : '(' S* trait-param [ ',' S* trait-param ]* ')';
+// trait-params     : [ '(' S* ')' ] |
+//                    [ '(' S* trait-param [ ',' S* trait-param ]* ')' ];
 // trait-param      : IDENT;
 // rulebody         : '{' S* [ ruleitem S* ]* [ ruleitem-single S* ]? '}';
 // ruleitem         : nested | [ mixin ';' ] | [ declaration ';' ] ';'*;
@@ -409,8 +439,12 @@ TABLES.ExCssTokens = ruleify({
 // mixin            : '@mixin' S* [ mixin-value S* ]+;
 // mixin-value      : mixin-ident S* mixin-args?;
 // mixin-ident      : IDENT;
-// mixin-args       : '(' S* mixin-arg [ ',' S* mixin-arg ]* ')';
+// mixin-args       : [ '(' S* ')' ] |
+//                    [ '(' S* mixin-arg [ ',' S* mixin-arg ]* ')' ];
 // mixin-arg        : value;
+// keyframes        : '@keyframes' S* keyframe-ident S* '{' S* keyframes-blocks '}';
+// keyframes-ident  : IDENT;
+// keyframes-blocks : [ ruleset S* ]* ;
 // declaration      : property S* ':' S* values;
 // property         : IDENT;
 // ruleset          : selector rulebody;
@@ -435,22 +469,20 @@ TABLES.ExCssTokens = ruleify({
 //                    ] S*;
 TABLES.Grammar = typeify(ruleify({
   stylesheet: zeroOrMore(first(t('S'), g('statement'))),
-  statement: first(g('var_decl'), g('trait'), g('ruleset')),
+  statement: first(g('var_decl'), g('trait'), g('ruleset'), g('keyframes')),
   var_decl: ['@var', SS, g('var_ident'), SS, g('var_init'), oneOrMore(';')],
   var_ident: t('IDENT'),
   var_init: g('values'),
-  trait: ['@trait',
-          SS,
-          g('trait_ident'),
-          SS,
+  trait: ['@trait', SS,
+          g('trait_ident'), SS,
           zeroOrOne(g('trait_params'), SS),
           g('rulebody')],
   trait_ident: t('IDENT'),
-  trait_params:
-    ['(', SS, g('trait_param'), zeroOrMore(',', SS, g('trait_param')), ')'],
+  trait_params: first(
+    ['(', SS, ')'],
+    ['(', SS, g('trait_param'), zeroOrMore(',', SS, g('trait_param')), ')']),
   trait_param: t('IDENT'),
-  rulebody: ['{',
-             SS,
+  rulebody: ['{', SS,
              zeroOrMore(g('ruleitem'), SS),
              zeroOrOne(g('ruleitem_single'), SS),
              '}'],
@@ -464,9 +496,17 @@ TABLES.Grammar = typeify(ruleify({
   mixin: ['@mixin', SS, oneOrMore(g('mixin_value'), SS)],
   mixin_value: [g('mixin_ident'), SS, zeroOrOne(g('mixin_args'))],
   mixin_ident: t('IDENT'),
-  mixin_args:
-    ['(', SS, g('mixin_arg'), zeroOrMore(',', SS, g('mixin_arg')), ')'],
+  mixin_args: first(
+    ['(', SS, ')'],
+    ['(', SS, g('mixin_arg'), zeroOrMore(',', SS, g('mixin_arg')), ')']),
   mixin_arg: g('value'),
+  keyframes: ['@keyframes', SS,
+              g('keyframes_ident'), SS,
+              '{', SS,
+              g('keyframes_blocks'),
+              '}'],
+  keyframes_ident: t('IDENT'),
+  keyframes_blocks: zeroOrMore(g('ruleset'), SS),
   declaration: [g('property'), SS, ':', SS, g('values')],
   property: t('IDENT'),
   ruleset: [g('selector'), g('rulebody')],
@@ -532,8 +572,21 @@ Token.prototype.run = function(callbackRegistry) {
 };
 
 // Strips all CSS comments from a stylesheet.
-function stripComments(stylesheet) {
-  return stylesheet.replace(/\/\*.*\*\//g, '');
+function stripComments(withComments) {
+  var withoutComments = "";
+  var inComment = false;
+  for (var i = 0; i < withComments.length - 1; i++) {
+    var token = withComments.slice(i, i + 2);
+    if (token === '/*' || token == '*/') {
+      inComment = (token === '/*');
+      i++;
+      continue;
+    }
+    if (!inComment) {
+      withoutComments += withComments[i];
+    }
+  }
+  return withoutComments;
 }
 
 // Extracts a parse object from a stylesheet, if one is found.
@@ -596,7 +649,14 @@ function extractMarkupAndParseObject(stylesheet) {
 //   }],
 //   variables: {{
 //     "ident": "value"
-//   }}
+//   }},
+//   keyframes: [{
+//     ident: "ident",
+//     blocks: [{
+//       selector: "selector",
+//       rules: [...]
+//     }]
+//   }]
 // }
 function parse(contents) {
   var markupAndParseObject = extractMarkupAndParseObject(contents);
@@ -604,7 +664,8 @@ function parse(contents) {
     return markupAndParseObject.parseObject;
   }
 
-  var stylesheet = TABLES.Grammar.stylesheet(stripComments(contents));
+  var stylesheet =
+      TABLES.Grammar.stylesheet(new StringWrapper(stripComments(contents)));
   if (!stylesheet) {
     error('Unable to parse stylesheet: ' + contents);
     return;
@@ -617,14 +678,20 @@ function parse(contents) {
   var jso = {
     traits: {},
     rulesets: [],
-    variables: {}
+    variables: {},
+    keyframes: []
   };
   var currentRule;
   var currentItems = [];
   var currentVariableIdent;
+  var currentStacks = [jso.rulesets];
 
   function currentItem() {
     return currentItems[currentItems.length - 1];
+  }
+
+  function currentStack() {
+    return currentStacks[currentStacks.length - 1];
   }
 
   stylesheet.run({
@@ -634,7 +701,7 @@ function parse(contents) {
       if (currentItems.length === 0) {
         // Selector is for a ruleset at the top level.
         currentItems.push({ selector: s, rules: [] });
-        jso.rulesets.push(currentItem());
+        currentStack().push(currentItem());
       } else {
         // Selector is for a nested ruleset.
         currentItem().selector += s;
@@ -661,6 +728,14 @@ function parse(contents) {
     },
     trait_param: function(s) {
       currentItem().params.push(s);
+    },
+    keyframes_ident: function(s) {
+      var blocks = [];
+      jso.keyframes.push({ ident: s, blocks: blocks });
+      currentStacks.push(blocks);
+    },
+    keyframes: function(s) {
+      currentStacks.pop();
     },
     var_ident: function(s) {
       currentVariableIdent = s;
@@ -722,9 +797,21 @@ function prettyPrint(parseObject) {
          var args = rule.mixin.args;
          var params = trait.params;
          var env = variables.newEnvironment();
-         for (var i = 0; i < args.length && i < params.length; i++) {
+
+         // Bind mixin arguments to trait parameters.
+         for (var i = 0; i < params.length && i < args.length; i++) {
            env.set(params[i], new Variable(params[i], args[i], variables));
          }
+         for (; i < params.length; i++) {
+           warn("Unbound parameter \"" + params[i] + "\"" +
+                " while mixing in trait \"" + rule.mixin.ident + "\"");
+           env.set(params[i], new Variable(params[i], "", variables));
+         }
+         for (; i < args.length; i++) {
+           warn("Ignoring unexpected argument \"" + args[i] + "\"" +
+                " while mixing in trait \"" + rule.mixin.ident + "\"");
+         }
+
          var flattenedMixin = flatten(selector, trait.rules, env);
          declarations = declarations.concat(flattenedMixin.declarations);
          nested = nested.concat(flattenedMixin.nested);
@@ -750,9 +837,35 @@ function prettyPrint(parseObject) {
     return css;
   }
 
+  // Pretty-prints keyframes, flattening their rulesets.
+  function ppKeyframes(name, blocks, variables) {
+    var result = "@keyframes " + name + " {\n";
+    blocks.forEach(function(block) {
+      var flattened = flatten(block.selector, block.rules, variables);
+      assert(flattened.nested.length === 0, "Can't handle nested rules in keyframes");
+      result += ppFlattened(flattened);
+    });
+    result += '}\n';
+    return result;
+  }
+
   var css = '';
   parseObject.rulesets.forEach(function(ruleset) {
     css += ppFlattened(flatten(ruleset.selector, ruleset.rules, VARIABLES));
+  });
+
+  parseObject.keyframes.forEach(function(keyframes) {
+    var keyframeText = 
+        ppKeyframes(keyframes.ident, keyframes.blocks, VARIABLES);
+    // Expand the generic definition to vender-specific definitions as
+    // doing otherwises causes massive duplication in input excss files.
+    // Replace this code when
+    // http://code.google.com/p/experimental-css/issues/detail?id=19
+    // is resolved.
+    ['webkit', 'moz', 'o', 'ms'].forEach(function(vendorExtension) {
+      css += '@-' + vendorExtension + '-' + keyframeText.substring('@'.length);
+    });
+    css += keyframeText;
   });
   return css;
 }
@@ -848,9 +961,8 @@ Variable.prototype.bind = function(value, variables) {
 // for a string, and maintain a heirarchy of variables in an environment-type
 // way for managing nesting and local variables.
 function Variables(parent) {
-  if (parent && !parent.variables) {
-    throw new Error('Parent must be an instance of Variables');
-  }
+  assert(!parent || parent.variables,
+         'Parent must be an instance of Variables');
   this.parent = parent;
   this.variables = {};
 }
@@ -892,9 +1004,7 @@ Variables.prototype.importFromParseObject = function(parseObject) {
 // Sets the variable with a given ident to a given value.  If no existing
 // value for the variable exists, it will be created.
 Variables.prototype.set = function(ident, variable) {
-  if (!variable.isVariable) {
-    throw new Error('Variable must be an instance of Variable');
-  }
+  assert(variable.isVariable, 'Variable must be an instance of Variable');
   this.variables[ident] = variable;
 };
 
@@ -955,9 +1065,7 @@ Stylesheet.prototype.getParseObject = function() {
 
 // Creates an ExCSS stylesheet object from a style element of type text/excss.
 Stylesheet.createFromStyleElement = function(styleElement) {
-  if (styleElement.type !== 'text/excss') {
-    throw new Error('Style element isn\'t ExCSS');
-  }
+  assert(styleElement.type === 'text/excss', 'Style element isn\'t ExCSS');
   var parseObject = parse(styleElement.innerHTML);
   if (!parseObject) {
     warn('Failed to parse style element: ' + styleElement.innerHTML);
@@ -969,9 +1077,8 @@ Stylesheet.createFromStyleElement = function(styleElement) {
 // Creates an ExCSS stylesheet object from a link element of type text/excss, by
 // using XHR to get the markup from the stylesheet linked to.
 Stylesheet.createFromLinkElement = function(linkElement) {
-  if (linkElement.type !== 'text/excss') {
-    throw new Error('Link element didn\'t have type text/excss');
-  }
+  assert(linkElement.type === 'text/excss',
+         'Link element didn\'t have type text/excss');
   var url = linkElement.href;
   if (!url) {
     warn('Link element didn\'t have a valid href');
@@ -1000,6 +1107,14 @@ Stylesheet.createFromLinkElement = function(linkElement) {
   var styleElement = instrument('  DOM bs...', function() {
     styleElement = document.createElement('style');
     styleElement.setAttribute('link_href', linkElement.href);
+    var linkAttributes = linkElement.attributes;
+    for (var i = 0; i < linkAttributes.length; i++) {
+      if (linkAttributes.item(i).name !== 'type' &&
+          linkAttributes.item(i).name !== 'href') {
+        styleElement.setAttribute(linkAttributes.item(i).name,
+                                  linkAttributes.item(i).value);
+      }
+    }
     linkElement.parentNode.insertBefore(styleElement, linkElement);
     linkElement.parentNode.removeChild(linkElement);
     return styleElement;
@@ -1010,9 +1125,8 @@ Stylesheet.createFromLinkElement = function(linkElement) {
 // Injects CSS markup into the style element owned by this stylesheet, based on
 // the state of the parse object and ExCSS variables.
 Stylesheet.prototype.injectCss = function() {
-  if (!this.styleElement) {
-    throw new Error('Stylesheet hasn\'t been constructed with a style element');
-  }
+  assert(this.styleElement,
+         'Stylesheet hasn\'t been constructed with a style element');
   if (!this.styleElement.parentNode) {
     warn('CSS will be injected, but style node isn\'t attached to anything');
   }
@@ -1113,7 +1227,11 @@ function runExCssFromBrowser() {
   });
 }
 
-if (document) {
+if (isExplicit) {
+  window.CSS.run = function() {
+    instrument('Explicitly running ExCSS', runExCssFromBrowser);
+  };
+} else if (document) {
   instrument('Running ExCSS', runExCssFromBrowser);
 }
 

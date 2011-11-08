@@ -1,0 +1,33 @@
+<style type="text/excss">
+  div {
+    color: black;
+  }
+
+  /* This variable should always be overridden by the trait argument,
+     regardless of whether an argument to the trait is given. */
+  @var fg red;
+  @trait m(fg) {
+    color: $fg;
+  }
+
+  #foo {
+    @mixin m;
+  }
+  #bar {
+    @mixin m();
+  }
+  #baz {
+    @mixin m(blue);
+  }
+  #qux {
+    @mixin m(blue, purple);
+  }
+</style>
+
+<div id="foo" expect="color: black"></div>
+<div id="bar" expect="color: black"></div>
+<div id="baz" expect="color: blue"></div>
+<div id="qux" expect="color: blue"></div>
+
+<script src="../../excss.js"></script>
+<script src="../tests.js"></script>

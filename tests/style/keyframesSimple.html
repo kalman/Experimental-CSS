@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<!--
+Copyright 2011 Google Inc. All Rights Reserved.
+
+Use of this source code is governed by a BSD-type license.
+See the COPYING file for details.
+-->
+
+<style type="text/excss">
+@keyframes simple  {
+  0% { color: black; background-color: white; }
+  20% { color: black; background-color: white; }
+  40% { color: red; background-color: red; }
+  60% { color: red; background-color: red; }
+  80% { color: white; background-color: black; }
+  100% { color: white; background-color: black; }
+}
+</style>
+
+<div keyframeName="simple" delay="0" expect="color: black; background-color: white">Foo</div>
+<div keyframeName="simple" delay="0.5" expect="color: red; background-color: red">Bar</div>
+<div keyframeName="simple" delay="1" expect="color: white; background-color: black">Baz</div>
+
+<script src="../../excss.js"></script>
+<script src="../tests.js"></script>
+

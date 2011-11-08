@@ -1,0 +1,18 @@
+<style type="text/excss" class="obsolete">
+  div.bar {
+    color: red;
+  }
+</style>
+
+<div id="foo" style="color: green; background-color: white">
+  <div id="bar" expect="color: green">Bar</div>
+</div>
+
+<script src="../../excss.js"></script>
+<script>
+  var elemList = document.getElementsByClassName('obsolete');
+  for (var i = 0; i < elemList.length; i++) {
+    elemList[i].disabled = true;
+  }
+</script>
+<script src="../tests.js"></script>

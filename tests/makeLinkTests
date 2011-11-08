@@ -42,7 +42,7 @@ def makeLinkTest(name)
         exCssFilename = name + exCssFileCount.to_s + '.excss';
         exCssFileCount += 1;
         htmlFile.puts('<head>')
-        htmlFile.puts('  <link rel="stylesheet" href="' + exCssFilename + '" type="text/excss">')
+        htmlFile.puts('  <link rel="stylesheet" href="' + exCssFilename + '"' + line['<style'.length..-1])
         htmlFile.puts('</head>')
         exCssFile = File.new($link_dir + '/' + exCssFilename, 'w')
         exCssFile.puts("/* #{warning} */")

@@ -15,13 +15,16 @@ See the COPYING file for details.
     width: $size;
     height: $size;
   }
+  @trait marginTop(value) {
+    margin-top: $value;
+  }
   .foo {
     @mixin colors(red) box(100px);
     color: white;
   }
   .bar {
     color: red;
-    @mixin colors(blue) box(200px);
+    @mixin colors(blue) box(200px) marginTop(-2px);
   }
 </style>
 
@@ -31,6 +34,6 @@ See the COPYING file for details.
 <div class="foo" expect="color: white; background-color: red; width: 100px; height: 100px">
   Foo
 </div>
-<div class="bar" expect="color: blue; background-color: blue; width: 200px; height: 200px">
+<div class="bar" expect="color: blue; background-color: blue; width: 200px; height: 200px; margin-top: -2px">
   Bar
 </div>

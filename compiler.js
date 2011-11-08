@@ -27,7 +27,7 @@ function ExCssFile(name) {
 // Pre-compiles the file in place.
 ExCssFile.prototype.preCompile = function() {
   fs.writeFileSync(this.name, exCss.preCompile(this.data, false));
-  console.log('Compilation of ' + this.name + ' successful.');
+  console.log('In-place precompilation of ' + this.name + ' successful.');
 }
 
 // Statically desugars and compiles the file to plain CSS.
@@ -55,10 +55,12 @@ if (args._.length === 0) {
 // Create all the files (map) then process them (forEach) so that the global
 // variables and traits will be resolved.
 args._.map(function(filename) {
+  console.log('Creating ExCssFile for: ' + filename);
   return new ExCssFile(filename);
 }).forEach(function(file) {
-  file.preCompile();
   if (args.static) {
     file.staticallyCompile();
+  } else {
+    file.preCompile();
   }
 });

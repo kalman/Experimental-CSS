@@ -27,6 +27,9 @@ window.$ = function(id) {
 // Phases for TESTS.addPhase().
 var phases = [];
 
+// Experimentally determined delay in milliseconds to allow asynchronous tests to work properly.
+var ASYNCHRONOUS_DELAY = 2000;
+
 window.TESTS = {
   // Adds a "phase" to the test.  These are functions which are run after the
   // initial validation of expectations.  After each phase is run, the
@@ -39,7 +42,10 @@ window.TESTS = {
   },
   // The list of failures.  Global so that the test runner can read it when the
   // test is run from an iframe.
-  failures: []
+  failures: [],
+  // The length of time that tests.html should wait before checking for 
+  // errors, in ms.
+  delay: 0
 };
 
 function fail(message) {
@@ -96,26 +102,42 @@ function showElement(element) {
 function checkExpectations(phaseName) {
   var elements = Array.prototype.slice.call(document.querySelectorAll('div[expect]'));
   elements.forEach(function(element) {
-    element.getAttribute('expect').split(';').forEach(function(expectation) {
-      var propertyAndExpectedValue = expectation.split(':');
-      if (propertyAndExpectedValue.length !== 2) {
-        fail(phaseName + ": Couldn't parse property/expected value from \"" + expectation + '\"');
-        return;
-      }
+    if (element.hasAttribute('keyframeName')) {
+      element.style['-webkit-animation-name'] = element.getAttribute('keyframeName');
+      element.style['-webkit-animation-duration'] = (ASYNCHRONOUS_DELAY / 1000 ) + "s";
+      window.setTimeout(function() {
+        checkElementExpectations(element, phaseName);
+      }, parseFloat(element.getAttribute('delay')) * ASYNCHRONOUS_DELAY);
 
-      var property = propertyAndExpectedValue[0].trim();
-      if (!isValidProperty(property)) {
-        fail(phaseName + ': Invalid or unsupported property ' + property);
-        return;
-      }
+      // Expand the delay used by tests.js slightly so that tests.html 
+      // definitely doesn't check for errors until tests.js is finished.
+      window.TESTS.delay = ASYNCHRONOUS_DELAY * 1.1;
+    } else {
+      checkElementExpectations(element, phaseName);
+    }
+  });
+}
 
-      var expectedValue = propertyAndExpectedValue[1].trim();
-      var actualValue = window.getComputedStyle(element)[property];
-      if (!propertiesAreEqual(property, expectedValue, actualValue)) {
-        fail(phaseName + ': ' + showElement(element) +
-             ' expected ' + property + ' ' + expectedValue + ' but got ' + actualValue);
-      }
-    });
+function checkElementExpectations(element, phaseName) {
+  element.getAttribute('expect').split(';').forEach(function(expectation) {
+    var propertyAndExpectedValue = expectation.split(':');
+    if (propertyAndExpectedValue.length !== 2) {
+      fail(phaseName + ": Couldn't parse property/expected value from \"" + expectation + '\"');
+      return;
+    }
+
+    var property = propertyAndExpectedValue[0].trim();
+    if (!isValidProperty(property)) {
+      fail(phaseName + ': Invalid or unsupported property ' + property);
+      return;
+    }
+
+    var expectedValue = propertyAndExpectedValue[1].trim();
+    var actualValue = window.getComputedStyle(element)[property];
+    if (!propertiesAreEqual(property, expectedValue, actualValue)) {
+      fail(phaseName + ': ' + showElement(element) +
+           ' expected ' + property + ' ' + expectedValue + ' but got ' + actualValue);
+    }
   });
 }
 
@@ -138,18 +160,22 @@ window.onload = function() {
     fail(phaseName + ': exception thrown while checking expectations in phase: ' + e);
   }
 
-  var log = document.createElement('pre');
-  document.body.appendChild(log);
-  var failures = window.TESTS.failures;
-  if (failures.length > 0) {
-    log.setAttribute('style', 'color: red');
-    failures.forEach(function(failure) {
-      log.innerHTML += 'FAIL: ' + failure + '\n';
-    });
-  } else {
-    log.setAttribute('style', 'color: green');
-    log.innerHTML = 'PASS';
-  }
+  var showLog = function() {
+    var log = document.createElement('pre');
+    document.body.appendChild(log);
+    var failures = window.TESTS.failures;
+    if (failures.length > 0) {
+      log.setAttribute('style', 'color: red');
+      failures.forEach(function(failure) {
+        log.innerHTML += 'FAIL: ' + failure + '\n';
+      });
+    } else {
+      log.setAttribute('style', 'color: green');
+      log.innerHTML = 'PASS';
+    }
+  } 
+
+  window.setTimeout(showLog, window.TESTS.delay);
 };
 
 }());

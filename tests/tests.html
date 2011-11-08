@@ -113,9 +113,14 @@ Author: Benjamin Kalman <kalman@chromium.org>
           iframe: iframe,
           src: (testName + ".html?nc=" + (new Date()).getTime()),
           onload: function() {
-            try {
+            var processTestResult = function() {
               var failures = iframe.contentWindow.TESTS.failures;
               link.className = iframe.className = (failures.length === 0) ? "pass" : "fail";
+              runNextTest();
+            }
+
+            try {
+              setTimeout(processTestResult, iframe.contentWindow.TESTS.delay);
             } catch (e) {
               // If this condition is hit, it's probably because the test is
               // being run from a local file (i.e. file:// protocol) rather than
@@ -123,8 +128,8 @@ Author: Benjamin Kalman <kalman@chromium.org>
               // work, but it will also cause the XHR based tests to fail anyway.
               link.className = "error";
               iframe.className = "error";
+              runNextTest();
             }
-            runNextTest();
           }
         });
 
@@ -136,7 +141,9 @@ Author: Benjamin Kalman <kalman@chromium.org>
 
     // Add tests here.
     var tests = [
-          "commaSeparatedSelectors"
+        // Fast tests.
+          "badTraitArgs"
+        , "commaSeparatedSelectors"
         , "emptyClasses"
         , "mixinsMultipleArgs"
         , "mixinsNoArgs"
@@ -149,16 +156,22 @@ Author: Benjamin Kalman <kalman@chromium.org>
         , "nestedMixed"
         , "nestedWithDescendants"
         , "nestedWithMultiples"
-        // FIXME: rename these to noExCssWith...
         , "noExcssWithClasses"
         , "noExcssWithDescendantsAndSiblings"
         , "noExcssWithIds"
+        , "tagAttributesPreserving"
         , "tooManySemicolons"
         , "varsDynamic"
         , "varsRedeclaration"
         , "varsReferencingOtherVars"
         , "varsScope"
         , "varsStatic"
+
+        // Slow tests - place all tests that take more than a fraction of a 
+        // second to execute below this line.
+        , "keyframesMixins"
+        , "keyframesSimple"
+        , "keyframesVariables"
      ];
 
      var testHrefs = [];
